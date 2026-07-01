@@ -28,7 +28,7 @@ Process each candidate separately when multiple candidates are provided.
    - Operator reliability: cancellation/refund policy, recent operation traces, and whether contact channels look usable.
    - Traps and risks: tourist overcharging, forced shopping, bait listing patterns, or bundled upsell pressure.
    - Context: seasonality, opening hours, local holidays, closures, weather-sensitive operation, or date-specific constraints.
-4. Put the findings into JSON and run `scripts/score.py` to calculate axis scores, total score, risk flags, and final decision.
+4. Put the findings into JSON and run `scripts/score.py` to calculate axis scores, total score, risk flags, verdict drivers, and final decision.
 5. Output a confidence card for each candidate.
 
 ## Findings JSON
@@ -88,9 +88,20 @@ Return this structure:
 - Overall score and confidence level.
 - Six-axis summary with evidence bullets and source URLs.
 - Risk flags.
+- Verdict drivers from `score.py`, so the reason behind the verdict is visible.
 - Remaining uncertainty: list every item that could not be verified.
 - One-line reason: "그래서 지금 예약해도 되는 이유".
 
 ## Missing Information Rule
 
 Never make up evidence. If public evidence is missing, say so, list it under remaining uncertainty, lower confidence, and prefer `확인 후 예약` over `지금 예약 OK`.
+
+Do not turn missing evidence alone into `비추천`. Use `비추천` only when the findings include critical signals such as scam/refund refusal/forced shopping, or many real negative signals. A candidate with low confidence and missing sources but no negative evidence should be `확인 후 예약`.
+
+## Scoring Behavior
+
+`scripts/score.py` is deterministic. The same findings JSON always returns the same axis scores, risk flags, verdict drivers, and verdict.
+
+- `지금 예약 OK`: overall score is at least 70, every axis has source URLs, confidence is not low, and there are no negative signals.
+- `확인 후 예약`: evidence is incomplete, the score is below the OK threshold, or there are non-critical concerns that need human checking.
+- `비추천`: critical signals are present, or the candidate has many real negative signals.

@@ -29,6 +29,12 @@ CRITICAL_TERMS = (
     "cancelled",
 )
 
+VERDICT_OK = "\uc9c0\uae08 \uc608\uc57d OK"
+VERDICT_CHECK = "\ud655\uc778 \ud6c4 \uc608\uc57d"
+VERDICT_BAD = "\ube44\ucd94\ucc9c"
+OK_THRESHOLD = 70
+NEGATIVE_LIMIT = 4
+
 
 def clamp(value: float, low: int = 0, high: int = 100) -> int:
     return max(low, min(high, round(value)))
@@ -42,65 +48,100 @@ def as_list(value: Any) -> list[str]:
     return []
 
 
-def axis_score(axis: dict[str, Any]) -> tuple[int, list[str]]:
-    """Deterministic heuristic: evidence helps, risks hurt, uncertainty hurts."""
+def confidence_value(value: Any) -> float:
+    if not isinstance(value, (int, float)):
+        return 0.0
+    return max(0.0, min(1.0, float(value)))
+
+
+def analyze_axis(name: str, axis: dict[str, Any]) -> dict[str, Any]:
+    positive = as_list(axis.get("positive"))
+    negative = as_list(axis.get("negative"))
+    sources = as_list(axis.get("sources"))
+    confidence = confidence_value(axis.get("confidence", 0.0))
+
+    # Evidence raises the score; real negatives lower it; uncertainty is a smaller penalty.
     if isinstance(axis.get("score"), (int, float)):
-        base = float(axis["score"])
+        axis_score = clamp(float(axis["score"]))
     else:
-        base = 50 + 8 * len(as_list(axis.get("positive"))) - 12 * len(as_list(axis.get("negative")))
+        axis_score = clamp(55 + 10 * len(positive) - 15 * len(negative) - (1.0 - confidence) * 10 - (0 if sources else 8))
 
-    confidence = axis.get("confidence", 0.0)
-    if not isinstance(confidence, (int, float)):
-        confidence = 0.0
-    confidence = max(0.0, min(1.0, float(confidence)))
-
-    score = clamp(base - (1.0 - confidence) * 20)
     flags: list[str] = []
+    drivers: list[str] = []
+
+    if negative:
+        flags.append("negative_signal")
+        drivers.append(f"{name}: negative evidence - {'; '.join(negative)}")
+
+    negative_text = " ".join(negative).lower()
+    for term in CRITICAL_TERMS:
+        if term in negative_text:
+            flags.append(f"critical:{term}")
+            drivers.append(f"{name}: critical signal '{term}' found")
 
     if confidence < 0.4:
         flags.append("low_confidence")
-    if not as_list(axis.get("sources")):
+        drivers.append(f"{name}: low confidence {confidence:.2f}")
+    if not sources:
         flags.append("missing_sources")
+        drivers.append(f"{name}: no public source URL provided")
 
-    negatives = " ".join(as_list(axis.get("negative"))).lower()
-    for term in CRITICAL_TERMS:
-        if term in negatives:
-            flags.append(f"critical:{term}")
+    return {
+        "score": axis_score,
+        "flags": flags,
+        "drivers": drivers,
+        "negative_count": len(negative),
+        "critical_count": sum(flag.startswith("critical:") for flag in flags),
+        "uncertainty_count": flags.count("low_confidence") + flags.count("missing_sources"),
+    }
 
-    return score, flags
 
+def decide(overall: int, analyses: dict[str, dict[str, Any]]) -> tuple[str, list[str]]:
+    critical_count = sum(item["critical_count"] for item in analyses.values())
+    negative_count = sum(item["negative_count"] for item in analyses.values())
+    uncertainty_count = sum(item["uncertainty_count"] for item in analyses.values())
 
-def decide(overall: int, flags: list[str]) -> str:
-    critical_count = sum(":critical:" in flag for flag in flags)
-    uncertainty_count = sum(flag.endswith(":low_confidence") or flag.endswith(":missing_sources") for flag in flags)
+    drivers = [driver for item in analyses.values() for driver in item["drivers"]]
 
-    # Hard risk beats average score; weak evidence blocks "book now".
-    if critical_count >= 2 or overall < 55:
-        return "비추천"
-    if critical_count or uncertainty_count >= 2 or overall < 75:
-        return "확인 후 예약"
-    return "지금 예약 OK"
+    if critical_count:
+        drivers.append(f"verdict: {critical_count} critical signal(s) found")
+        return VERDICT_BAD, drivers
+    if negative_count >= NEGATIVE_LIMIT:
+        drivers.append(f"verdict: {negative_count} negative signal(s), limit is {NEGATIVE_LIMIT - 1}")
+        return VERDICT_BAD, drivers
+    if overall >= OK_THRESHOLD and negative_count == 0 and uncertainty_count == 0:
+        drivers.append(f"verdict: score {overall} >= {OK_THRESHOLD}, with sources and no negative signals")
+        return VERDICT_OK, drivers
+
+    if overall < OK_THRESHOLD:
+        drivers.append(f"verdict: score {overall} < {OK_THRESHOLD}")
+    if uncertainty_count:
+        drivers.append(f"verdict: {uncertainty_count} uncertainty signal(s) need checking")
+    if negative_count:
+        drivers.append(f"verdict: {negative_count} non-critical negative signal(s) need checking")
+    return VERDICT_CHECK, drivers
 
 
 def score(payload: dict[str, Any]) -> dict[str, Any]:
     findings = payload.get("findings", {})
-    axis_scores: dict[str, int] = {}
-    flags: list[str] = []
+    analyses: dict[str, dict[str, Any]] = {}
 
     for name in AXES:
-        raw_axis = findings.get(name, {})
-        axis = raw_axis if isinstance(raw_axis, dict) else {}
-        axis_scores[name], axis_flags = axis_score(axis)
-        flags.extend(f"{name}:{flag}" for flag in axis_flags)
+        raw_axis = findings.get(name, {}) if isinstance(findings, dict) else {}
+        analyses[name] = analyze_axis(name, raw_axis if isinstance(raw_axis, dict) else {})
 
+    axis_scores = {name: item["score"] for name, item in analyses.items()}
     overall = clamp(sum(axis_scores.values()) / len(AXES))
+    verdict, drivers = decide(overall, analyses)
+
     return {
         "candidate": payload.get("candidate"),
         "city": payload.get("city"),
         "axis_scores": axis_scores,
         "overall_score": overall,
-        "risk_flags": flags,
-        "verdict": decide(overall, flags),
+        "risk_flags": [f"{name}:{flag}" for name, item in analyses.items() for flag in item["flags"]],
+        "verdict": verdict,
+        "verdict_drivers": drivers,
     }
 
 
@@ -112,10 +153,29 @@ def load_payload(path: str | None) -> dict[str, Any]:
     return payload
 
 
+def self_test() -> None:
+    good_axis = {"confidence": 0.9, "positive": ["recent reviews", "fair price", "clear policy"], "negative": [], "sources": ["https://example.com"]}
+    unknown_axis = {"confidence": 0.2, "positive": [], "negative": [], "sources": []}
+    bad_axis = {"confidence": 0.8, "positive": [], "negative": ["scam reports", "refund refusal"], "sources": ["https://example.com"]}
+
+    good = score({"findings": {axis: good_axis for axis in AXES}})
+    unknown = score({"findings": {axis: unknown_axis for axis in AXES}})
+    bad = score({"findings": {axis: (bad_axis if axis in {"review_reliability", "operator_reliability"} else good_axis) for axis in AXES}})
+
+    assert good["verdict"] == VERDICT_OK, good
+    assert unknown["verdict"] == VERDICT_CHECK, unknown
+    assert bad["verdict"] == VERDICT_BAD, bad
+    print("self-test ok")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score travel booking verification findings.")
     parser.add_argument("json_file", nargs="?", help="Findings JSON file. Reads stdin when omitted.")
+    parser.add_argument("--self-test", action="store_true", help="Run built-in scorer checks.")
     args = parser.parse_args()
+    if args.self_test:
+        self_test()
+        return
     print(json.dumps(score(load_payload(args.json_file)), ensure_ascii=False, indent=2, sort_keys=True))
 
 
