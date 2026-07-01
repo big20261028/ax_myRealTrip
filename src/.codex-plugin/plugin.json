@@ -1,0 +1,22 @@
+{
+  "name": "mrt-trip-verify",
+  "version": "0.1.0",
+  "description": "Verify travel booking candidates with public web evidence and produce decision cards.",
+  "author": {
+    "name": "AX myrealtrip"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "MRT Trip Verify",
+    "shortDescription": "Checks travel booking candidates before purchase.",
+    "longDescription": "Uses public web evidence to verify tours, stays, and activities across six risk axes, then produces a booking decision card.",
+    "developerName": "AX myrealtrip",
+    "category": "Travel",
+    "capabilities": ["Read", "Research"],
+    "defaultPrompt": [
+      "Verify this travel booking candidate.",
+      "Check whether I should book this tour now."
+    ],
+    "brandColor": "#10A37F"
+  }
+}
