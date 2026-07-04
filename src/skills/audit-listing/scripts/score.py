@@ -56,7 +56,7 @@ def confidence_value(value: Any) -> float:
 
 
 def question_for(item: str) -> str:
-    return f"Please confirm and provide listing copy for: {item}"
+    return f"다음 항목을 확인하고 상세페이지에 반영할 문구를 제공해 주세요: {item}"
 
 
 def analyze_axis(name: str, axis: dict[str, Any]) -> dict[str, Any]:

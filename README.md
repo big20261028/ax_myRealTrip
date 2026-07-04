@@ -10,6 +10,24 @@ The plugin uses public evidence to find missing information, unclear booking con
 
 Tour and activity listings often lose bookings or create repeated CS questions because key details are missing or unclear: meeting point, duration, rain policy, minimum departure count, entrance-fee inclusion, cancellation terms, route risk, or crowding risk. These checks are repetitive, evidence-driven, and need a consistent rubric.
 
+## Public Evidence
+
+This plugin is designed around public evidence, not internal MyRealTrip data. MyRealTrip operates public tour, ticket, and activity pages, and visible listing details can affect customer booking decisions. Public policy pages such as the MyRealTrip cancellation/refund policy can be used to check whether a product page clearly connects customers to refund rules.
+
+External event or venue pages can also expose operating dates, access constraints, transport guidance, crowding, safety notes, and other details that tour/activity listings should reflect. Public articles or reviews may be used as supporting signals for CS risk such as crowding, waiting, accessibility issues, refund complaints, or unclear operations.
+
+Example public sources used in E2E checks:
+
+- https://www.myrealtrip.com/
+- https://www.myrealtrip.com/main/experiences
+- https://auth.myrealtrip.com/terms/common/cancel
+- https://www.vividsydney.com/
+- https://www.vividsydney.com/visit/access-and-inclusion
+- https://www.theguardian.com/culture/article/2024/jun/10/vivid-festival-sydney-crowd-crush-fears-nsw-premier-chris-minns
+- https://www.hongkongdisneyland.com/calendars/day/
+- https://www.hongkongdisneyland.com/guest-services/guests-with-disabilities/
+- https://en.wikipedia.org/wiki/Hong_Kong_Disneyland
+
 ## Users
 
 - Product operators
@@ -135,10 +153,42 @@ Get-Content .\examples\listing-findings.json | python .\src\skills\audit-listing
     "route_meeting_point_risk: traffic delay handling"
   ],
   "partner_questions": [
-    "Please confirm and provide listing copy for: exact meeting point",
-    "Please confirm and provide listing copy for: minimum departure count",
-    "Please confirm and provide listing copy for: entrance fee inclusion",
-    "Please confirm and provide listing copy for: traffic delay handling"
+    "다음 항목을 확인하고 상세페이지에 반영할 문구를 제공해 주세요: exact meeting point",
+    "다음 항목을 확인하고 상세페이지에 반영할 문구를 제공해 주세요: minimum departure count",
+    "다음 항목을 확인하고 상세페이지에 반영할 문구를 제공해 주세요: entrance fee inclusion",
+    "다음 항목을 확인하고 상세페이지에 반영할 문구를 제공해 주세요: traffic delay handling"
   ]
 }
 ```
+
+## Submission ZIP
+
+Include at minimum:
+
+- `src/`
+- `README.md`
+- `logs/` as the full original log folder
+
+Also include when useful:
+
+- `examples/`
+- `.agents/plugins/marketplace.json`
+
+Do not exclude, edit, summarize, or delete original work logs. In particular, keep:
+
+- `logs/codex/*.jsonl`
+- pre-pivot conversation logs
+- failed-attempt logs
+- previous-direction reference logs
+- original Codex conversation logs
+
+You may exclude generated or local environment files:
+
+- `.git/`
+- `.codex/`
+- `__pycache__/`
+- `*.pyc`
+- `.venv/`
+- `node_modules/`
+- cache/temp files
+- OS/editor temp files
