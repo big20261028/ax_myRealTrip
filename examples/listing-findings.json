@@ -1,0 +1,54 @@
+{
+  "candidate": "Example Paris day tour",
+  "city": "Paris",
+  "findings": {
+    "product_information_completeness": {
+      "confidence": 0.8,
+      "positive": ["duration is visible", "guide language is stated"],
+      "missing": ["exact meeting point"],
+      "unclear": [],
+      "negative": [],
+      "sources": ["https://example.com/listing"]
+    },
+    "booking_condition_clarity": {
+      "confidence": 0.7,
+      "positive": ["date calendar is visible"],
+      "missing": ["minimum departure count"],
+      "unclear": [],
+      "negative": [],
+      "sources": ["https://example.com/listing"]
+    },
+    "cancellation_refund_clarity": {
+      "confidence": 0.7,
+      "positive": ["public cancellation policy URL exists"],
+      "missing": [],
+      "unclear": [],
+      "negative": [],
+      "sources": ["https://example.com/cancel"]
+    },
+    "price_cost_transparency": {
+      "confidence": 0.8,
+      "positive": ["base price is visible"],
+      "missing": ["entrance fee inclusion"],
+      "unclear": [],
+      "negative": [],
+      "sources": ["https://example.com/listing"]
+    },
+    "route_meeting_point_risk": {
+      "confidence": 0.6,
+      "positive": ["destinations are public tourist sites"],
+      "missing": [],
+      "unclear": ["traffic delay handling"],
+      "negative": [],
+      "sources": ["https://example.com/map"]
+    },
+    "review_cs_risk": {
+      "confidence": 0.6,
+      "positive": [],
+      "missing": [],
+      "unclear": [],
+      "negative": ["public reports mention crowding"],
+      "sources": ["https://example.com/reviews"]
+    }
+  }
+}

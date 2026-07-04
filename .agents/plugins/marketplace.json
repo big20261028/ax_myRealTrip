@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "mrt-trip-verify",
+      "name": "mrt-listing-quality-auditor",
       "source": {
         "source": "local",
         "path": "./src"

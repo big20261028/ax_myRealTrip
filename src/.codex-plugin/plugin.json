@@ -1,21 +1,21 @@
 {
-  "name": "mrt-trip-verify",
+  "name": "mrt-listing-quality-auditor",
   "version": "0.1.0",
-  "description": "Verify travel booking candidates with public web evidence and produce decision cards.",
+  "description": "Audit MyRealTrip tour and activity listing pages with public evidence and produce operator QA reports.",
   "author": {
     "name": "AX myrealtrip"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "MRT Trip Verify",
-    "shortDescription": "Checks travel booking candidates before purchase.",
-    "longDescription": "Uses public web evidence to verify tours, stays, and activities across six risk axes, then produces a booking decision card.",
+    "displayName": "MRT Listing Quality Auditor",
+    "shortDescription": "Audits tour listing pages before publishing.",
+    "longDescription": "Uses public evidence to audit MyRealTrip tour and activity listings, find missing or unclear booking information, and produce operator QA reports with partner follow-up questions.",
     "developerName": "AX myrealtrip",
     "category": "Travel",
     "capabilities": ["Read", "Research"],
     "defaultPrompt": [
-      "Verify this travel booking candidate.",
-      "Check whether I should book this tour now."
+      "Audit this MyRealTrip tour listing.",
+      "Find missing listing details before publish."
     ],
     "brandColor": "#10A37F"
   }
