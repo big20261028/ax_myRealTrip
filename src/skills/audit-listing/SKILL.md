@@ -1,131 +1,210 @@
 ---
 name: audit-listing
-description: 마이리얼트립 투어·액티비티 상품 상세페이지를 운영자 관점에서 QA하고, 예약 저해 요소, 정보 누락, CS 유발 요소, 파트너 보완 질문, 상세페이지 개선안을 생성할 때 사용.
+description: 마이리얼트립 투어·액티비티 상품 상세페이지를 운영자 관점에서 공개 자료 기반으로 QA하고, 정보 누락, 불명확한 예약 조건, 고객 문의로 이어질 수 있는 설명 부족, 파트너 보완 질문, 상세페이지 개선안을 생성할 때 사용.
 ---
 
 # Audit Listing
 
-Use this skill for MyRealTrip product operators, partner onboarding managers, content QA reviewers, and CS/operations teams who need to audit a public tour or activity listing before publishing or improving it.
+## 목적
 
-This is not a traveler booking recommendation. The output is an operator QA report that identifies missing listing details, unclear booking conditions, likely CS triggers, partner follow-up questions, and suggested listing copy.
+`audit-listing` 스킬은 마이리얼트립 투어·액티비티 상품 상세페이지를 운영자 관점에서 감사한다.
 
-Only use public web sources. Do not use internal APIs, private data, login-only pages, paid APIs, secret logs, or guessed numbers. Every evidence-based claim needs a source URL. If something cannot be confirmed publicly, mark it as `확인 불가`.
+공개 상품 페이지, 공개 정책 페이지, 공식 관광지·행사·시설 안내, 공개 후기 등 확인 가능한 자료를 기준으로 상품 상세페이지의 정보 완결성, 예약 조건 명확성, 취소·환불 명확성, 가격·추가비용 투명성, 동선·집합장소 리스크, 후기·문의 가능성 리스크를 점검한다.
 
-## Inputs
+이 스킬은 여행자에게 상품을 추천하거나 예약 결정을 대신하지 않는다. 최종 출력은 운영자용 QA 리포트다.
 
-- Product name or public product URL.
-- City/country.
-- Optional: existing product description text.
-- Optional: comparable public product URLs.
+## 사용 대상
 
-Process each product separately when multiple products are provided.
+- 마이리얼트립 상품 운영자
+- 파트너 온보딩 담당자
+- 콘텐츠 QA 담당자
+- 고객지원/운영 담당자
 
-## Workflow
+## 사용 상황
 
-1. Normalize product name, URL, destination, operator/platform, and any visible price.
-2. Collect public evidence from the listing page, MyRealTrip public pages, public policy pages, destination/venue pages, public reviews, or comparable public listings.
-3. Audit six QA axes:
-   - `product_information_completeness`: schedule, duration, meeting point, transport, language, inclusions/exclusions, preparation items, age/fitness limits.
-   - `booking_condition_clarity`: minimum departure count, confirmation method, rain/weather operation, seasonality, closing days, operating days, schedule-change possibility.
-   - `cancellation_refund_clarity`: whether cancellation/refund terms are understandable from listing copy and public policy.
-   - `price_cost_transparency`: base price plus entrance fees, meals, tips, local transport, optional costs, and other extra costs.
-   - `route_meeting_point_risk`: exact meeting address, accessibility, long-distance routing risk, schedule collision, local transit variables.
-   - `review_cs_risk`: public reviews, external reports, crowding, queues, forced shopping, refund complaints, response problems, or signals likely to create customer questions.
-4. Convert findings into JSON and run `scripts/score.py`.
-5. Produce an operator QA report.
+- 신규 투어·액티비티 상품 게시 전
+- 기존 상품 상세페이지 개선 전
+- 파트너에게 보완 요청을 보내기 전
+- 상품 상세페이지의 포함/불포함, 취소·환불, 운영시간, 위치, 추가 비용, 이용 제한 조건이 충분한지 점검할 때
 
-## Findings JSON
+## 입력
 
-Use this shape for `scripts/score.py`. Extra fields are allowed.
+- 상품명
+- 공개 상품 URL
+- 도시/국가
+- 기존 상품 설명 텍스트
+- 비교 가능한 공개 상품 URL
+- 공식 관광지·행사·시설 안내 URL
+- 공개 정책 URL
+
+여러 상품이 들어오면 상품별로 분리해서 감사한다.
+
+## 공개 자료 기반 원칙
+
+- 공개 웹 자료만 사용한다.
+- 내부 API, 비공개 자료, 로그인 필요 페이지, 유료 API를 사용하지 않는다.
+- 고객 개인정보, 비밀 로그, 토큰, 비밀번호를 사용하지 않는다.
+- 확인되지 않는 숫자나 조건을 임의로 만들지 않는다.
+- 근거가 필요한 주장에는 출처 URL을 붙인다.
+- 확인되지 않는 항목은 `확인 불가`로 표시한다.
+- 공개 자료와 synthetic sample 또는 테스트 예시를 구분한다.
+
+## 작업 절차
+
+1. 상품명, URL, 목적지, 판매 플랫폼, 공개 가격 정보를 정리한다.
+2. 공개 상품 페이지, 마이리얼트립 공개 정책, 공식 관광지·행사·시설 안내, 공개 후기, 비교 가능한 공개 상품을 조사한다.
+3. 6축 기준으로 `positive`, `missing`, `unclear`, `negative`, `sources`, `partner_questions`를 정리한다.
+4. findings JSON을 만들고 `scripts/score.py`에 입력한다.
+5. 축별 점수, 종합 점수, 최종 판정, 판정 근거, 부족 항목, 파트너 보완 질문을 생성한다.
+6. 운영자용 QA 리포트와 상세페이지 수정 제안을 작성한다.
+
+## 6축 감사 기준
+
+축 이름은 `scripts/score.py`의 `AXES`와 동일하게 유지한다.
+
+1. `product_information_completeness`
+   - 상품명, 대상 지역, 상품 유형, 일정, 소요시간, 포함/불포함, 준비물, 연령·체력 제한 등 상품 기본 정보가 충분한지 확인한다.
+
+2. `booking_condition_clarity`
+   - 예약 확정 방식, 이용일, 인원, 옵션, 최소 출발 인원, 우천·기상 조건, 운영일, 시즌성, 일정 변경 가능성이 명확한지 확인한다.
+
+3. `cancellation_refund_clarity`
+   - 취소·환불 조건, 환불 불가 시점, 상품별 예외 조건, 공개 환불 정책과 상세페이지 설명이 이해 가능한지 확인한다.
+
+4. `price_cost_transparency`
+   - 기본 가격, 포함/불포함, 입장료, 식사, 팁, 현지 교통비, 옵션 비용, 현장 추가 비용이 투명한지 확인한다.
+
+5. `route_meeting_point_risk`
+   - 집합 장소, 정확한 주소, 지도 링크, 이동 동선, 운영시간 확인 방법, 장거리 이동이나 교통 변수로 인한 오해 가능성이 있는지 확인한다.
+
+6. `review_cs_risk`
+   - 공개 후기나 공개 정보에서 고객 문의로 이어질 수 있는 불명확성이 있는지 확인한다.
+   - 내부 고객 문의 데이터가 아니라 공개 후기와 공개 정보만 기준으로 판단한다.
+
+## Findings JSON 형식
+
+`scripts/score.py`에는 아래 구조의 JSON을 입력한다. 추가 필드는 허용되지만, 6축 이름은 변경하지 않는다.
 
 ```json
 {
-  "candidate": "Example Paris day tour",
-  "city": "Paris",
+  "candidate": "상품명",
+  "city": "도시/국가",
   "findings": {
     "product_information_completeness": {
       "confidence": 0.8,
-      "positive": ["duration is visible", "included guide language is stated"],
-      "missing": ["exact meeting point"],
-      "unclear": ["fitness requirement"],
-      "negative": [],
+      "positive": ["공개 자료로 확인되는 충분한 정보"],
+      "missing": ["공개 자료에서 확인되지 않는 필수 정보"],
+      "unclear": ["설명은 있지만 불명확한 정보"],
+      "negative": ["공개 자료에서 확인된 위험 신호"],
       "sources": ["https://example.com/listing"],
-      "partner_questions": ["정확한 집합 장소 주소와 지도 링크를 제공할 수 있나요?"]
+      "partner_questions": ["파트너에게 확인할 질문"]
     },
     "booking_condition_clarity": {
       "confidence": 0.7,
-      "positive": ["date calendar is visible"],
-      "missing": ["minimum departure count", "rain operation policy"],
+      "positive": [],
+      "missing": [],
       "unclear": [],
       "negative": [],
-      "sources": ["https://example.com/listing"]
+      "sources": []
     },
     "cancellation_refund_clarity": {
       "confidence": 0.7,
-      "positive": ["public cancellation policy URL exists"],
+      "positive": [],
       "missing": [],
-      "unclear": ["listing copy does not summarize refund cutoff"],
+      "unclear": [],
       "negative": [],
-      "sources": ["https://example.com/cancel"]
+      "sources": []
     },
     "price_cost_transparency": {
-      "confidence": 0.8,
-      "positive": ["base price is visible"],
-      "missing": ["entrance fee inclusion"],
+      "confidence": 0.7,
+      "positive": [],
+      "missing": [],
       "unclear": [],
       "negative": [],
-      "sources": ["https://example.com/listing"]
+      "sources": []
     },
     "route_meeting_point_risk": {
-      "confidence": 0.6,
-      "positive": ["destinations are public tourist sites"],
-      "missing": ["return time"],
-      "unclear": ["traffic delay handling"],
+      "confidence": 0.7,
+      "positive": [],
+      "missing": [],
+      "unclear": [],
       "negative": [],
-      "sources": ["https://example.com/map"]
+      "sources": []
     },
     "review_cs_risk": {
-      "confidence": 0.6,
+      "confidence": 0.7,
       "positive": [],
-      "missing": ["recent review count"],
+      "missing": [],
       "unclear": [],
-      "negative": ["public reports mention crowding"],
-      "sources": ["https://example.com/reviews"]
+      "negative": [],
+      "sources": []
     }
   }
 }
 ```
 
-## Score Output
+필드 의미는 다음과 같다.
 
-`score.py` returns:
+- `positive`: 공개 자료로 확인되는 충분한 정보
+- `missing`: 공개 자료에서 확인되지 않는 필수 정보
+- `unclear`: 설명은 있지만 불명확한 정보
+- `negative`: 공개 자료에서 확인된 위험 신호
+- `sources`: 근거 URL
+- `partner_questions`: 파트너에게 확인할 질문
+
+## score.py 출력
+
+`scripts/score.py`는 다음 필드를 반환한다.
 
 - `axis_scores`
 - `overall_score`
 - `risk_flags`
-- `verdict`: `승인 가능`, `보완 후 게시`, or `게시 보류`
+- `verdict`
 - `verdict_drivers`
 - `missing_information`
 - `partner_questions`
 
-## Verdict Rules
+## 판정 기준
 
-- `승인 가능`: required information is mostly complete, source-backed evidence exists, and no meaningful risk or unclear item remains.
-- `보완 후 게시`: the product itself does not look unsafe, but the listing needs completion or clarification before publishing.
-- `게시 보류`: critical negative signals exist, severe refund/operation/customer-harm risk exists, or core required information is missing too broadly to publish.
+- `승인 가능`: 핵심 정보가 충분하고 공개 출처가 확인되며 의미 있는 누락·불명확·위험 신호가 없다.
+- `보완 후 게시`: 게시 자체를 막을 정도는 아니지만 누락 정보, 불명확한 조건, 출처 보완, 파트너 확인 질문이 필요하다.
+- `게시 보류`: critical signal, negative signal 다수, 또는 핵심 정보 다수 누락으로 고객이 예약 조건을 오해할 가능성이 크다.
 
-Do not use `게시 보류` only because public information is sparse. If information is sparse but no severe risk is found, prefer `보완 후 게시` and list the uncertainty.
+중요 규칙은 다음과 같다.
 
-## Final QA Report
+- 공개 정보가 부족하다는 이유만으로 무조건 `게시 보류`를 주지 않는다.
+- 정보가 부족하지만 치명 신호가 없으면 `보완 후 게시`를 선호하고, 불확실성을 명시한다.
+- 공개 자료로 확인할 수 없는 항목은 추측하지 않고 `확인 불가`로 표시한다.
 
-Return:
+## 최종 QA 리포트
 
-- Final verdict.
-- Overall score.
-- Axis-by-axis QA summary with source URLs.
-- Missing or unclear information.
-- Customer inquiry or booking-dropoff triggers.
-- Partner follow-up questions.
-- Suggested listing copy or page edits.
-- Evidence URLs.
-- Items that could not be verified from public sources.
+최종 출력에는 다음 항목을 포함한다.
+
+- 최종 판정
+- 종합 점수
+- 축별 QA 요약
+- 출처 URL
+- 부족하거나 불명확한 항목
+- 위험 플래그
+- 판정 근거
+- 파트너 보완 질문
+- 상세페이지 수정 제안
+- 공개 자료로 확인할 수 없는 항목
+
+## 금지 사항
+
+- 고객에게 상품 예약을 추천하지 않는다.
+- 상품의 구매 여부를 대신 판단하지 않는다.
+- 내부 관리자 화면, 로그인 필요 페이지, 비공개 API를 사용하지 않는다.
+- 고객 개인정보를 사용하지 않는다.
+- 실제 고객 문의 데이터가 있는 것처럼 단정하지 않는다.
+- 고객 행동 변화나 성과 지표처럼 공개 자료로 확인되지 않는 내용을 단정하지 않는다.
+- 확인되지 않은 운영시간, 가격, 환불 조건, 포함/불포함을 임의로 만들지 않는다.
+
+## 한계
+
+- 공개 자료 기반 감사이므로 내부 운영 기준, 실제 고객 문의 데이터, 비공개 파트너 계약 조건은 확인할 수 없다.
+- 동적 UI나 로그인 후 화면에서 더 많은 정보가 노출될 수 있다.
+- 공개 페이지나 공식 자료에 없는 정보는 `확인 불가`로 표시한다.
+- 최종 법무·정책·운영 판단을 대신하지 않는다.
+- 고객의 예약 결정을 대신하지 않는다.
